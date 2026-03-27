@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:authflow_app/utils/colors.dart'; 
 import 'package:authflow_app/screens/login_screen.dart'; 
+import 'package:authflow_app/services/http_service.dart'; 
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -18,6 +19,8 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isConfirmPasswordVisible = false;
   bool _acceptTerms = false;
   bool _isLoading = false;
+  String? _errorMessage;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -26,6 +29,60 @@ class _SignupScreenState extends State<SignupScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSignup() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (!_acceptTerms) {
+      setState(() {
+        _errorMessage = 'Please accept the Terms & Conditions';
+      });
+      return;
+    }
+
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+
+    try {
+      await HttpService.post('/auth/register', {
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text,
+      });
+      
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        String message;
+        if (e.statusCode == 409) {
+          message = 'An account with this email already exists';
+        } else {
+          message = e.message;
+        }
+        setState(() {
+          _errorMessage = message;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Something went wrong. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -42,27 +99,54 @@ class _SignupScreenState extends State<SignupScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 32),
-              _buildNameField(),
-              const SizedBox(height: 16),
-              _buildEmailField(),
-              const SizedBox(height: 16),
-              _buildPasswordField(),
-              const SizedBox(height: 16),
-              _buildConfirmPasswordField(),
-              const SizedBox(height: 16),
-              _buildTermsCheckbox(),
-              const SizedBox(height: 24),
-              _buildSignupButton(),
-              const SizedBox(height: 24),
-              _buildSignInLink(),
-            ],
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 32),
+                if (_errorMessage != null) ...[_buildErrorBanner(), const SizedBox(height: 16)],
+                _buildNameField(),
+                const SizedBox(height: 16),
+                _buildEmailField(),
+                const SizedBox(height: 16),
+                _buildPasswordField(),
+                const SizedBox(height: 16),
+                _buildConfirmPasswordField(),
+                const SizedBox(height: 16),
+                _buildTermsCheckbox(),
+                const SizedBox(height: 24),
+                _buildSignupButton(),
+                const SizedBox(height: 24),
+                _buildSignInLink(),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.error.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: AppColors.error, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: TextStyle(color: AppColors.error, fontSize: 14),
+            ),
+          ),
+        ],
       ),
     );
   }
