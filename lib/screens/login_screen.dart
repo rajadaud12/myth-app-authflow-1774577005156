@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:authflow_app/utils/colors.dart'; 
+import 'package:authflow_app/screens/signup_screen.dart'; 
+import 'package:authflow_app/screens/forgot_password_screen.dart'; 
+import 'package:authflow_app/screens/home_screen.dart'; 
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,12 +16,44 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+
+    try {
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Login failed. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -34,6 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 48),
               _buildWelcomeText(),
               const SizedBox(height: 32),
+              if (_errorMessage != null) ...[_buildErrorBanner(), const SizedBox(height: 16)],
               _buildEmailField(),
               const SizedBox(height: 16),
               _buildPasswordField(),
@@ -50,6 +86,29 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.error.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: AppColors.error, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: TextStyle(color: AppColors.error, fontSize: 14),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -216,7 +275,12 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
         ),
         TextButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+            );
+          },
           child: Text(
             'Forgot Password?',
             style: TextStyle(
@@ -249,7 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: _isLoading ? null : _handleLogin,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -257,15 +321,24 @@ class _LoginScreenState extends State<LoginScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: const Text(
-          'Sign In',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 1,
-          ),
-        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Text(
+                'Sign In',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1,
+                ),
+              ),
       ),
     );
   }
@@ -294,24 +367,31 @@ class _LoginScreenState extends State<LoginScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildSocialButton(
-          icon: 'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+          icon: Icons.g_mobiledata,
+          label: 'Google',
           onTap: () {},
         ),
         const SizedBox(width: 16),
         _buildSocialButton(
-          icon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Apple_logo_grey.svg/800px-Apple_logo_grey.svg.png',
+          icon: Icons.apple,
+          label: 'Apple',
           onTap: () {},
         ),
         const SizedBox(width: 16),
         _buildSocialButton(
-          icon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_logo_2019.svg/1200px-Facebook_logo_2019.svg.png',
+          icon: Icons.facebook,
+          label: 'Facebook',
           onTap: () {},
         ),
       ],
     );
   }
 
-  Widget _buildSocialButton({required String icon, required VoidCallback onTap}) {
+  Widget _buildSocialButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -330,20 +410,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(11),
-          child: Image.network(
-            icon,
-            width: 28,
-            height: 28,
-            errorBuilder: (context, error, stackTrace) {
-              return Icon(
-                icon.contains('google') ? Icons.g_mobiledata : Icons.link,
-                color: AppColors.textSecondary,
-                size: 28,
-              );
-            },
-          ),
+        child: Icon(
+          icon,
+          color: AppColors.textPrimary,
+          size: 28,
         ),
       ),
     );
@@ -361,7 +431,12 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         TextButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SignupScreen()),
+            );
+          },
           child: Text(
             'Sign Up',
             style: TextStyle(
