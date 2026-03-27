@@ -21,6 +21,7 @@ class MyApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Roboto',
+      ),
       home: const LoginScreen(), 
     );
   }
